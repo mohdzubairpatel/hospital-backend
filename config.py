@@ -1,13 +1,11 @@
-import pymysql
+import os
+import psycopg2
 
 def get_connection():
-    return pymysql.connect(
-        host="localhost",
-        port=3306,
-        user="root",
-        password="anees",
-        database="hospital_db",
-        cursorclass=pymysql.cursors.DictCursor
+    return psycopg2.connect(
+        host=os.environ.get("ep-fancy-cake-a107xc6m-pooler.ap-southeast-1.aws.neon.tech"),
+        database=os.environ.get("neondb"),
+        user=os.environ.get("neondb_owner"),
+        password=os.environ.get("npg_sLgMKp6uHbP3"),
+        port=os.environ.get("5432")
     )
-    
-

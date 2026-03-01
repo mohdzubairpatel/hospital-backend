@@ -14,7 +14,11 @@ def get_patients():
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM patients")
-    data = cursor.fetchall()
+
+    columns = [desc[0] for desc in cursor.description]
+    rows = cursor.fetchall()
+    data = [dict(zip(columns, row)) for row in rows]
+
     connection.close()
     return jsonify(data)
 
