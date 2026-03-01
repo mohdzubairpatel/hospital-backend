@@ -5,70 +5,122 @@ from config import get_connection
 app = Flask(__name__)
 CORS(app)
 
+
+# ✅ Root Route
 @app.route("/")
 def home():
     return "Hospital Backend is Running Successfully 🚀"
 
+
+# ✅ GET All Patients
 @app.route("/patients", methods=["GET"])
 def get_patients():
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT * FROM patients")
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    columns = [desc[0] for desc in cursor.description]
-    rows = cursor.fetchall()
-    data = [dict(zip(columns, row)) for row in rows]
+        cursor.execute("SELECT * FROM patients")
 
-    connection.close()
-    return jsonify(data)
+        columns = [desc[0] for desc in cursor.description]
+        rows = cursor.fetchall()
+        data = [dict(zip(columns, row)) for row in rows]
 
+        cursor.close()
+        connection.close()
+
+        return jsonify(data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ✅ Add Patient
 @app.route("/patients", methods=["POST"])
 def add_patient():
-    data = request.json
-    connection = get_connection()
-    cursor = connection.cursor()
+    try:
+        data = request.json
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    query = "INSERT INTO patients (name, age, gender, disease) VALUES (%s, %s, %s, %s)"
-    cursor.execute(query, (data['name'], data['age'], data['gender'], data['disease']))
-    connection.commit()
-    connection.close()
+        query = """
+        INSERT INTO patients (name, age, gender, disease)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id
+        """
 
-    return jsonify({"message": "Patient added successfully"})
+        cursor.execute(query, (
+            data['name'],
+            data['age'],
+            data['gender'],
+            data['disease']
+        ))
 
+        new_id = cursor.fetchone()[0]
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "message": "Patient added successfully",
+            "id": new_id
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ✅ Update Patient
 @app.route("/patients/<int:id>", methods=["PUT"])
 def update_patient(id):
-    data = request.json
-    connection = get_connection()
-    cursor = connection.cursor()
+    try:
+        data = request.json
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    query = """
-    UPDATE patients
-    SET name=%s, age=%s, gender=%s, disease=%s
-    WHERE id=%s
-    """
+        query = """
+        UPDATE patients
+        SET name=%s, age=%s, gender=%s, disease=%s
+        WHERE id=%s
+        """
 
-    cursor.execute(query, (
-        data['name'],
-        data['age'],
-        data['gender'],
-        data['disease'],
-        id
-    ))
+        cursor.execute(query, (
+            data['name'],
+            data['age'],
+            data['gender'],
+            data['disease'],
+            id
+        ))
 
-    connection.commit()
-    connection.close()
+        connection.commit()
 
-    return jsonify({"message": "Patient updated successfully"})
+        cursor.close()
+        connection.close()
 
+        return jsonify({"message": "Patient updated successfully"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ✅ Delete Patient
 @app.route("/patients/<int:id>", methods=["DELETE"])
 def delete_patient(id):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute("DELETE FROM patients WHERE id=%s", (id,))
-    connection.commit()
-    connection.close()
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    return jsonify({"message": "Patient deleted successfully"})
+        cursor.execute("DELETE FROM patients WHERE id=%s", (id,))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({"message": "Patient deleted successfully"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
